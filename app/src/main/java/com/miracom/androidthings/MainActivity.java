@@ -76,7 +76,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        dr.child("ledBlink").addValueEventListener(new ValueEventListener() {
+/*        dr.child("ledBlink").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 // Get Post object and use the values to update the UI
@@ -101,7 +101,7 @@ public class MainActivity extends Activity {
                 //Log.w(TAG, "loadPost:onCancelled", databaseError.toException());
                 // ...
             }
-        });
+        });*/
 
 
 
