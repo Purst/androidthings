@@ -54,9 +54,10 @@ public class PWMActivity extends Activity {
         super.onCreate(savedInstanceState);
         Log.i(TAG, "Starting PWMActivity");
 
+
         PeripheralManager service = PeripheralManager.getInstance();
         try {
-            String pinName = BoardDefaults.getPWMPort();
+            String pinName = "PWM1";
             mActivePulseDuration = MIN_ACTIVE_PULSE_DURATION_MS;
 
             mPwm = service.openPwm(pinName);
