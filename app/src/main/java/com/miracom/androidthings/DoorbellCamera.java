@@ -41,8 +41,8 @@ import static android.content.Context.CAMERA_SERVICE;
 public class DoorbellCamera {
     private static final String TAG = DoorbellCamera.class.getSimpleName();
 
-    private static final int IMAGE_WIDTH = 320;
-    private static final int IMAGE_HEIGHT = 240;
+    private static final int IMAGE_WIDTH = 640;
+    private static final int IMAGE_HEIGHT = 480;
     private static final int MAX_IMAGES = 1;
 
     private CameraDevice mCameraDevice;

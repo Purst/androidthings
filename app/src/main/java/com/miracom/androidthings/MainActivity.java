@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.util.Log;
+
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.things.pio.Gpio;
@@ -20,9 +21,10 @@ import com.google.firebase.database.*;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+
 import java.nio.ByteBuffer;
 
-public class MainActivity extends Activity{
+public class MainActivity extends Activity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -106,48 +108,72 @@ public class MainActivity extends Activity{
             dr.child("led").addValueEventListener(new ValueEventListener() {
 
                 @Override
-                public void onDataChange(DataSnapshot dataSnapshot){
+                public void onDataChange(DataSnapshot dataSnapshot) {
 
-                    String sLedCd = (String) dataSnapshot.getValue();
+                    String sLedCd = getValue(dataSnapshot, "power");
 
                     try {
-                        if("on".equals(sLedCd)){
+                        if ("on".equals(sLedCd)) {
                             mLedGpio.setValue(true);
-                        }
-                        else{
+                        } else {
                             mLedGpio.setValue(false);
                         }
-                    } catch ( Exception e) {
+                    } catch (Exception e) {
                         Log.e(TAG, "LED Error!", e);
                     }
                 }
 
                 @Override
-                public void onCancelled(DatabaseError databaseError) {}
+                public void onCancelled(DatabaseError databaseError) {
+                }
             });
 
             dr.child("door").addValueEventListener(new ValueEventListener() {
 
                 @Override
-                public void onDataChange(DataSnapshot dataSnapshot){
+                public void onDataChange(DataSnapshot dataSnapshot) {
 
-                    String sDoorCd = (String) dataSnapshot.getValue();
+                    String sPercent = getValue(dataSnapshot, "percent");
+                    double offset;
+
+                    if ("".equals(sPercent)) {
+                        offset = 0;
+                    } else {
+                        offset = 1.0 * (Double.parseDouble(sPercent) / 100);
+                    }
 
                     try {
-                        if("open".equals(sDoorCd)){
-                            mPwm.setPwmDutyCycle(100 * MIN_ACTIVE_PULSE_DURATION_MS/ PULSE_PERIOD_MS);
-                        }
-                        else{
-                            mPwm.setPwmDutyCycle(100 * MAX_ACTIVE_PULSE_DURATION_MS / PULSE_PERIOD_MS);
-                        }
-
+                        mPwm.setPwmDutyCycle(100 * (MAX_ACTIVE_PULSE_DURATION_MS - offset) / PULSE_PERIOD_MS);
                     } catch (Exception e) {
                         Log.e(TAG, "Door Error!", e);
                     }
                 }
 
                 @Override
-                public void onCancelled(DatabaseError databaseError) {}
+                public void onCancelled(DatabaseError databaseError) {
+                }
+            });
+
+            dr.child("camera").addValueEventListener(new ValueEventListener() {
+
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+
+
+
+                    String sValue = getValue(dataSnapshot, "take");
+
+                    Log.i(TAG, "Camera -> " + sValue);
+
+                    if ("on".equals(sValue)) {
+                        mCamera.takePicture();
+                        dr.child("camera").child("take").child("value").setValue("off");
+                    }
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+                }
             });
 
         } catch (Exception e) {
@@ -161,7 +187,7 @@ public class MainActivity extends Activity{
     private void onPictureTaken(final byte[] imageBytes) {
         if (imageBytes != null) {
             final DatabaseReference log = database.getReference("logs").push();
-            final StorageReference imageRef = mStorage.getReference().child(log.getKey());
+            final StorageReference imageRef = mStorage.getReference().child("capture");
 
             // upload image to storage
             UploadTask task = imageRef.putBytes(imageBytes);
@@ -184,5 +210,22 @@ public class MainActivity extends Activity{
                 }
             });
         }
+    }
+
+    private String getValue(DataSnapshot dataSnapshot, String itemNm) {
+
+        for (DataSnapshot item : dataSnapshot.getChildren()) {
+
+            String name = item.getKey().toString();
+
+            if (itemNm.equals(name)) {
+
+                for (DataSnapshot value : item.getChildren()) {
+
+                    return value.getValue().toString();
+                }
+            }
+        }
+        return "";
     }
 }
