@@ -30,10 +30,12 @@ public class MainActivity extends Activity {
 
     // Pin Name
     private static final String SERVO_MOTOR_PIN = "PWM1";
-    private static final String LED_PIN = "BCM6";
+    private static final String RED_LED_PIN = "BCM6";
+    private static final String GREEN_LED_PIN = "BCM5";
 
     // Device Class
-    private Gpio mLedGpio;
+    private Gpio mRedLedGpio;
+    private Gpio mGreenLedGpio;
     private Pwm mPwm;
     private DoorbellCamera mCamera;
 
@@ -80,9 +82,13 @@ public class MainActivity extends Activity {
 
         try {
 
-            // LED Control
-            mLedGpio = service.openGpio(LED_PIN);
-            mLedGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            // Red LED Control
+            mRedLedGpio = service.openGpio(RED_LED_PIN);
+            mRedLedGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+
+            // Green LED Control
+            mGreenLedGpio = service.openGpio(GREEN_LED_PIN);
+            mGreenLedGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
 
             // Servo Motor control
             mPwm = service.openPwm(SERVO_MOTOR_PIN);
@@ -111,12 +117,18 @@ public class MainActivity extends Activity {
                 public void onDataChange(DataSnapshot dataSnapshot) {
 
                     String sLedCd = getValue(dataSnapshot, "power");
+                    String sColorCd = getValue(dataSnapshot, "color");
 
                     try {
                         if ("on".equals(sLedCd)) {
-                            mLedGpio.setValue(true);
+                            if("RED".equals(sColorCd)) {
+                                mRedLedGpio.setValue(true);
+                            } else if("GREEN".equals(sColorCd)) {
+                                mGreenLedGpio.setValue(true);
+                            }
                         } else {
-                            mLedGpio.setValue(false);
+                            mRedLedGpio.setValue(false);
+                            mGreenLedGpio.setValue(false);
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "LED Error!", e);
