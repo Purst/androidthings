@@ -11,7 +11,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.util.Log;
-
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.things.pio.Gpio;
@@ -21,28 +20,31 @@ import com.google.firebase.database.*;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
-
 import java.nio.ByteBuffer;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity{
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
     // Pin Name
     private static final String SERVO_MOTOR_PIN = "PWM1";
-    private static final String RED_LED_PIN = "BCM6";
-    private static final String GREEN_LED_PIN = "BCM5";
+    //private static final String LED_PIN = "BCM6";
+    private static final String LED_PIN_RED = "PWM0";;
+    private static final String LED_PIN_GREEN = "BCM5";
 
     // Device Class
-    private Gpio mRedLedGpio;
+    //private Gpio mLedGpio;
+    private Gpio mYellowLedGpio;
     private Gpio mGreenLedGpio;
     private Pwm mPwm;
     private DoorbellCamera mCamera;
+    private Pwm mPwmLed;
 
     // Parameters of the servo PWM
     private static final double MIN_ACTIVE_PULSE_DURATION_MS = 1;
     private static final double MAX_ACTIVE_PULSE_DURATION_MS = 2;
     private static final double PULSE_PERIOD_MS = 20;  // Frequency of 50Hz (1000/20)
+    private static final double MAX_BRIGHT = 255;
 
     private FirebaseDatabase database;
     private FirebaseStorage mStorage;
@@ -82,12 +84,8 @@ public class MainActivity extends Activity {
 
         try {
 
-            // Red LED Control
-            mRedLedGpio = service.openGpio(RED_LED_PIN);
-            mRedLedGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
-
-            // Green LED Control
-            mGreenLedGpio = service.openGpio(GREEN_LED_PIN);
+            // LED GREEN Control
+            mGreenLedGpio = service.openGpio(LED_PIN_GREEN);
             mGreenLedGpio.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
 
             // Servo Motor control
@@ -97,6 +95,13 @@ public class MainActivity extends Activity {
             mPwm.setPwmFrequencyHz(1000 / PULSE_PERIOD_MS);
             mPwm.setPwmDutyCycle(100 * MAX_ACTIVE_PULSE_DURATION_MS / PULSE_PERIOD_MS);
             mPwm.setEnabled(true);
+
+            // LED Bright
+            mPwmLed = service.openPwm(LED_PIN_RED);
+            mPwmLed.setPwmFrequencyHz(120);
+            //mPwmLed.setPwmDutyCycle(25);
+            mPwmLed.setPwmDutyCycle(0);
+            mPwmLed.setEnabled(true);
 
             // We need permission to access the camera
             if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -117,22 +122,35 @@ public class MainActivity extends Activity {
                 public void onDataChange(DataSnapshot dataSnapshot) {
 
                     String sLedCd = getValue(dataSnapshot, "power");
+                    String sLedBright = getValue(dataSnapshot, "brightness");
                     String sColorCd = getValue(dataSnapshot, "color");
 
+                    int offset;
+
                     try {
+
                         if ("on".equals(sLedCd)) {
-                            if("RED".equals(sColorCd)) {
-                                mRedLedGpio.setValue(true);
-                            } else if("GREEN".equals(sColorCd)) {
-                                mGreenLedGpio.setValue(true);
-                            }
-                        } else {
-                            mRedLedGpio.setValue(false);
+                            mGreenLedGpio.setValue(true);
+                        }else {
                             mGreenLedGpio.setValue(false);
                         }
+
+                        if ("".equals(sLedBright)) {
+                            offset = 0;
+                        } else {
+                            offset = ((100 * Integer.parseInt(sLedBright)) / 255) ;
+                        }
+
+                        try {
+                            mPwmLed.setPwmDutyCycle(offset);
+                        } catch (Exception e) {
+                            Log.e(TAG, "LED Bright Error!", e);
+                        }
+
                     } catch (Exception e) {
                         Log.e(TAG, "LED Error!", e);
                     }
+
                 }
 
                 @Override
